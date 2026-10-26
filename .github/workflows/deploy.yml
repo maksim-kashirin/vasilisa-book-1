@@ -1,0 +1,81 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11.28.8
+
+      - name: Configure Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v6
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint deployed source
+        run: pnpm exec oxlint app components/ui/button.tsx
+
+      - name: Build static site
+        run: pnpm run build
+        env:
+          NEXT_PUBLIC_BASE_PATH: /vasilisa-book-1
+          NEXT_PUBLIC_SITE_URL: https://maksim-kashirin.github.io/vasilisa-book-1/
+
+      - name: Verify static output
+        run: |
+          test -f dist/client/index.html
+          test -f dist/client/images/book-valley-hero.png
+          test -f dist/client/images/library-awakens.png
+          test -f dist/client/images/silver-trails.png
+          ! grep -RIl "localhost:3000" dist/client
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist/client
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
