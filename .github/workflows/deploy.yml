@@ -56,6 +56,9 @@ jobs:
           test -f dist/client/images/book-valley-hero.png
           test -f dist/client/images/library-awakens.png
           test -f dist/client/images/silver-trails.png
+          test -d dist/client/_next
+          test ! -d dist/client/vasilisa-book-1
+          grep -q "https://maksim-kashirin.github.io/vasilisa-book-1/_next/" dist/client/index.html
           ! grep -RIl "localhost:3000" dist/client
 
       - name: Upload GitHub Pages artifact
